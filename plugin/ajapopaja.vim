@@ -457,6 +457,7 @@ augroup END
 augroup AjaPopAjaMappings
   autocmd!
   autocmd FileType ajapopaja nnoremap <buffer> <S-F9> :AjaPopAjaPopupPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <buffer> ? :AjaPopAjaPrompt<CR>
   autocmd FileType ajapopaja nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
   autocmd FileType ajapopaja nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
