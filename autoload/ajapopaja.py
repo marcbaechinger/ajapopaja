@@ -1,8 +1,10 @@
+from re import S
 from api_key import get_api_key
 from dataclasses import dataclass
 from datetime import datetime
 from google import genai
 from google.genai import types
+import uuid
 import os
 
 __all__ = ["AjaPopAja"]
@@ -15,8 +17,12 @@ def create_chat(api_key: str, model: str, contentConfig: types.GenerateContentCo
     )
 
 class AjaPopAja:
-    def __init__(self, api_key: str, system_instruction: str, log_directory: str) -> None:
-        self.log_directory = log_directory + "/" + datetime.now().strftime("%Y%m%d_%H%M%S")
+    def __init__(self, api_key: str, system_instruction: str, workspace_parent:str, log_directory: str) -> None:
+        self.uuid = str(uuid.uuid4())
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path_segment = self.timestamp + "_" + self.uuid
+        self.workspace = os.path.join(workspace_parent, path_segment)
+        self.log_directory = os.path.join(log_directory, path_segment)
         self.model_name = "gemini-2.0-flash"
         self.selected_index = 0
         self.prompt_count = 0

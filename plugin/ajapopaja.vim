@@ -5,6 +5,7 @@ let g:loaded_ajapopaja = 1
 
 python3 << EOF
 # Imports Python modules to be used by the plugin.
+import os
 import sys
 import threading
 
@@ -25,17 +26,20 @@ def AjaPopAjaAppendToSysPath(paths: list[str]):
 AjaPopAjaAppendToSysPath(
   [
     '~/.vim/bundle/ajapopaja/autoload/', 
-    '/Users/marcbaechinger/monolit/code/ajapopaja/.venv/lib/python3.13/site-packages',  
+    '~/monolit/code/ajapopaja/.venv/lib/python3.13/site-packages',  
   ]
 )
+
+ajaPopAja_user_home = vim.eval("expand('~/.ajapopaja')")
 ajaPopAjaHasTutor = False
 api_key = None
-ajaPopAjaRequiredImports = ["google.genai", "tutor"]
+ajaPopAjaRequiredImports = ["google.genai", "ajapopaja"]
 if AjaPopAjaSafeImport(ajaPopAjaRequiredImports):
-  from tutor import VimTutor
+  from ajapopaja import AjaPopAja
   from api_key import get_api_key
   api_key = get_api_key()
   ajaPopAjaHasTutor = api_key is not None
+
 
 ajaPopAjaSystemInstruction = """You are an expert, highly efficient VIM plugin AI. Your primary goal is to empower the user to build and modify software projects and websites directly within their Vim environment.
 
@@ -62,7 +66,7 @@ Goal: [A concise, high-level statement of what this step aims to achieve.]
 
 ##Executable code snippet
 
-[Executable code for this step. Use 'vimscript' for Vim commands, 'bash' for shell commands, or 'python' for Python code. The first line has a tag `step-seq: 42` commented out for the language of the snippet where 42 is the step sequence.
+[Executable code for this step. Use 'vimscript' for Vim commands, 'bash' for shell commands, or 'python' for Python code. The first line has a tag `step-seq: 42` commented out for the language of the snippet where 42 is the step sequence."
 - 'vimscript': For Vim's native Ex commands, normal mode commands (prefixed with 'normal! '), or VimL function calls. Can call unix cli tools or Python code.
 - 'bash': For standard shell commands, Git commands, system utilities, or scripts.
 - 'python': For Python code intended to be executed within Vim's embedded Python interpreter (e.g., using `:py3`). This is useful for more complex logic, file I/O within the plugin context, or interacting with Python libraries.]
@@ -103,20 +107,22 @@ END_OF_TEMPLATE
 Important Notes for Generation:
 
 - Always provide at least one complete Step.
+- Vim commands calling Vimscripts are prefered specificatlly for smaller and simpler changes. They can call bash and Pythong scripts in functions or here-documents if its a more complicated logic.
 - Break down larger tasks into smaller, manageable Steps. If a task requires multiple steps, only provide the current step's full details. The "Next Steps/Iteration" section should then indicate that further steps will be provided upon user confirmation or explicit request.
 - Ensure all code blocks are properly fenced with the correct language identifier (vimscript,bash, ```python).
 - Each step results in a working state of the artefacts after the proposed code blocks have been executed.
 - Make sure explanations are concise but comprehensive enough to understand the purpose of the code.
-- Crucially, always provide clear and actionable Acceptance Criteria for each step.
-"""
+- Crucially, always provide clear and actionable Acceptance Criteria for each step."""
 
 if api_key is None:
   print("please provide an API key as env variable GOOGLE_API_KEY to use the Gemini API")
 elif not ajaPopAjaHasTutor:
   print("some required imports not available out of ", ajaPopAjaRequiredImports)
 else:
-  tutor = VimTutor(api_key, ajaPopAjaSystemInstruction, vim.eval("expand('~/.ajapopaja/trace')")
-)
+  workspace_parent = os.path.join(ajaPopAja_user_home, "workspaces")
+  logfile_dir = os.path.join(ajaPopAja_user_home, "trace")
+  tutor = AjaPopAja(api_key, ajaPopAjaSystemInstruction, workspace_parent, logfile_dir)
+
 
 def AjaPopAjaSetNavigationInfo(index):
   size = len(tutor.history.entries)
@@ -124,14 +130,17 @@ def AjaPopAjaSetNavigationInfo(index):
   vim.command(f"let g:AjaPopAjaNavigationInfo = '{navigationInfo}'")
   return navigationInfo
 
+
 def AjaPopAjaPromptCallback():
   index, historyItem = tutor.get_last()
   AjaPopAjaSetNavigationInfo(index)
   vim.command("call AjaPopAjaFetchResponse()");
 
+
 def AjaPopAjaPromptBlocking(prompt):
   tutor.prompt(prompt.decode('utf-8'))
   AjaPopAjaPromptCallback()
+
 
 def AjaPopAjaPromptAsync():
   prompt = vim.vars['AjaPopAjaValue']
@@ -143,6 +152,7 @@ def AjaPopAjaPromptAsync():
   thread.start()
   return ""
 
+
 def AjaPopAjaSelectAndReturnPreviousResponse():
   prev = tutor.select_previous()
   if prev is None:
@@ -152,6 +162,7 @@ def AjaPopAjaSelectAndReturnPreviousResponse():
   header = f"# -- {navigationInfo} in history --\n"
   historyItem = prev[1]
   return header + historyItem.response
+
 
 def AjaPopAjaSelectAndReturnNextResponse():
   nextItem = tutor.select_next()
@@ -164,10 +175,12 @@ def AjaPopAjaSelectAndReturnNextResponse():
   historyItem = nextItem[1]
   return header + historyItem.response
 
+
 def AjaPopAjaGetTotalTokenStats():
   if not ajaPopAjaHasTutor:
     return "0/0"
   return str(tutor.get_prompt_token_count()) + "/" + str(tutor.get_candidates_token_count())
+
 
 def AjaPopAjaGetSelectedTokenStats():
   if not ajaPopAjaHasTutor:
@@ -177,6 +190,7 @@ def AjaPopAjaGetSelectedTokenStats():
     return str(historyEvent.prompt_token_count) + "/" + str(historyEvent.candidates_token_count)
   else:
     return "-/-"
+
 
 EOF
 
