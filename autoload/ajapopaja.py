@@ -1,9 +1,10 @@
-from re import S
+from ajapopajagit import GitReporter
 from api_key import get_api_key
 from dataclasses import dataclass
 from datetime import datetime
 from google import genai
 from google.genai import types
+from ajapopajabuffer import extract_and_save_fenced_code
 import uuid
 import os
 
@@ -29,6 +30,7 @@ class AjaPopAja:
         self.prompt_token_count = 0
         self.candidates_token_count = 0
         self.history = History()
+        self.git_reporter = GitReporter(self.workspace)
         config= types.GenerateContentConfig(
             system_instruction=system_instruction,
             response_mime_type='text/plain',
@@ -151,6 +153,11 @@ class AjaPopAja:
         if len(self.history.entries) == 0:
             return -1, None
         return self.selected_index, self.history.entries[self.selected_index]
+
+    def execute_selected_code_section(self):
+        extract_and_save_fenced_code(self.workspace, ".exec.sh")
+        self.git_reporter.execute_bash_script(self.workspace, ".exec.sh")
+
 
 @dataclass(frozen=True)
 class HistoryEvent:
