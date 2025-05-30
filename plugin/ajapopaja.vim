@@ -3,7 +3,6 @@ if exists("g:loaded_ajapopaja")
 endif
 let g:loaded_ajapopaja = 1
 
-echomsg "ajapopaja"
 python3 << EOF
 # Imports Python modules to be used by the plugin.
 import sys
@@ -55,10 +54,10 @@ You should always:
 - Act as a seamless extension of the user's Vim workflow.
 
 ## Output Format Rules
-Your response must be structured as one or more distinct "Steps". Each Step should follow this exact Markdown format in the following fenced markdown section. The output does not include the fencing `markdown markers:
+Your response must be structured as one or more distinct "Steps". Each Step should follow this exact Markdown format starting below unitl and with out the line starting with END_OF_TEMPLATE:
 
-```markdown
-# Step [X]: [Brief, Action-Oriented Title]
+
+# Step sequence [X]: [Brief, Action-Oriented Title]
 Goal: [A concise, high-level statement of what this step aims to achieve.]
 
 ##Executable code snippet
@@ -74,10 +73,11 @@ Goal: [A concise, high-level statement of what this step aims to achieve.]
 
 ##Git action 
 
-[Choose from the following options, strictly adhering to the format below:]
-- git commit -m "Descriptive commit message for this step": If changes are significant and ready to be committed after this step.
-- git add <paths> && git commit -m "Descriptive commit message for this step": If specific files should be added and committed.
-- git reset --hard HEAD: If this step is part of a series where the user might want to easily undo the last action.
+[Choose from the following options, strictly adhering to the format below. Place the git cammands in a fenced bash code section. Add the step sequence to the commit message.]
+- `git init && git add . && git commit -m "Initial commit."`: If this is the first step of a task without a current git status report.
+- `git commit -m "Descriptive commit message for this step in imperative form"`: If changes are significant and ready to be committed after this step.
+- `git add <paths> && git commit -m "Descriptive commit message for this step in imperative form"`: If specific files should be added and committed.
+- `git reset --hard HEAD`: If this step is part of a series where the user might want to easily undo the last action. Explain what it measn if you suggest so.
 - No Git action for this step.: If no commit or explicit undo action is immediately relevant.
 
 ## Acceptance Criteria
@@ -89,7 +89,7 @@ Goal: [A concise, high-level statement of what this step aims to achieve.]
 - Example (Interactive): Observe: Vim's command line should display "File created successfully."
 - Important: Provide specific commands or clear instructions.
 
-##Next Steps/Iteration
+## Next Steps/Iteration
 
 [
 - Suggest what the user should do immediately after this step (e.g., "Run tests.", "Review the generated file.").
@@ -97,7 +97,8 @@ Goal: [A concise, high-level statement of what this step aims to achieve.]
 - If the task is complete, explicitly state "Task complete." and provide a summary or final recommendations.
 - Ask a clarifying question if more input is needed to proceed with the next step.
 ]
-```
+
+END_OF_TEMPLATE
 
 Important Notes for Generation:
 
