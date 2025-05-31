@@ -440,6 +440,36 @@ function! s:getResponseWinId()
   return -1
 endfunction
 
+function! s:appendSelectionToPrompt()
+  let winId = s:getPromptWinId()
+  if winId == -1
+    echomsg "Prompt window not found"
+    return
+  endif
+  let selection = s:getVisualSelection()
+  if empty(selection)
+    echomsg "No visual selection found."
+    return
+  endif
+  if s:promptBufferNr <= 0
+    echomsg "Prompt buffer not found: " . s:promptBufferName
+    return
+  endif
+  echomsg "append " . s:promptBufferNr . ", " . s:promptBufferName
+  call appendbufline(s:promptBufferName, line("$", winId), "```" . &filetype)
+  call appendbufline(s:promptBufferName, line("$", winId), selection)
+  call appendbufline(s:promptBufferName, line("$", winId), "```")
+endfunction
+
+function! s:getVisualSelection()
+  let [lnum1, col1] = getpos("'<")[1:2]
+  let [lnum2, col2] = getpos("'>")[1:2]
+  let lines = getline(lnum1, lnum2)
+  let lines[-1] = lines[-1][:col2 - (&selection ==# 'inclusive' ? 1 : 0)]
+  let lines[0] = lines[0][col1 - 1:]
+  return lines
+endfunction
+
 " utility functions
 
 function! s:ensureDirectoryExists(directory_path)
@@ -490,6 +520,7 @@ if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaPopupPrompt :call s:popupPrompt()
   command -nargs=0  AjaPopAjaExecuteSelectedCode :call s:executeSelectedStep()
   command -nargs=0  AjaPopAjaPresentSelectedUserActions :call s:presentSelectedUserActions()
+  command -range AjaPopAjaAppendSelectionToPrompt :call s:appendSelectionToPrompt()
 endif
 
 augroup AjaPopAjaAutoCommands

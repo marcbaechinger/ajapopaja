@@ -150,6 +150,12 @@ noticing the user.
                         Presents the suggested "User Commands" from the
                         current step in a selectable list for easy execution.
 
+                                            *AjaPopAjaAppendSelectionToPrompt*
+:AjaPopAjaAppendSelectionToPrompt
+                        Appends the selected text to the prompt buffer. The
+                        text is wrapped in a fenced Markdown code section
+                        tagged with the `filtetype`.
+
 =============================================================================
 
 6. Key mappings when in the prompt window    *ajapopaja-prompt-window-mappings*
@@ -167,7 +173,11 @@ mappings are available in normal mode for quick access to common actions.
 
 7. Global key mappings                              *ajapopaja-global-mappings*
 
-  <Leader>ap           Calls `:AjaPopAjaPrompt`<CR>
+  <Leader>ap           Calls `:AjaPopAjaPrompt`<CR> in normal mode.
+
+Recommended mapping in Visual mode for your `~/.vimrc`:
+
+  <C-v>                Calls `:AjaPopAjaAppendSelectionToPrompt`<CR>
 
 
 vim:tw=78:ts=8:ft=help:norl:
