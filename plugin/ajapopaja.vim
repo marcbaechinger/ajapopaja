@@ -488,7 +488,7 @@ if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaSelectPrevious :call s:displayPrevious()
   command -nargs=0  AjaPopAjaSelectNext :call s:displayNext()
   command -nargs=0  AjaPopAjaPopupPrompt :call s:popupPrompt()
-  command -nargs=0  AjaPopAjaExecuteSelectedStep :call s:executeSelectedStep()
+  command -nargs=0  AjaPopAjaExecuteSelectedCode :call s:executeSelectedStep()
   command -nargs=0  AjaPopAjaPresentSelectedUserActions :call s:presentSelectedUserActions()
 endif
 
@@ -506,8 +506,7 @@ augroup AjaPopAjaMappings
   autocmd FileType ajapopaja nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
   autocmd FileType ajapopaja nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
-  autocmd FileType markdown nnoremap <buffer> <F9> :AjaPopAjaExecuteSelectedStep<CR>
 augroup END
 
-nnoremap <silent> <S-F6> :AjaPopAjaTogglePrompt<CR> 
+nnoremap <silent> <Leader>ap :AjaPopAjaTogglePrompt<CR> 
 
