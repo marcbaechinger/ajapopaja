@@ -286,8 +286,10 @@ function! s:renderResponse(code)
   if winid != -1
     let lastLine = line('$', winid)
     let bufname = bufname(s:responseBufferNr)
+    call setbufvar(s:responseBufferNr, "&modifiable", 1)
     call deletebufline(bufname, 1, lastLine)
     call appendbufline(bufname, 1, split(a:code, "\n", 1)) 
+    call setbufvar(s:responseBufferNr, "&modifiable", 0)
     call setbufvar(s:responseBufferNr, "&foldlevel", 1)
   endif
 endfunction
@@ -379,6 +381,7 @@ endfunction
 
 function! s:setLocalSettingsForResponseBuffer()
   setlocal bufhidden=hide
+  setlocal nomodifiable
   setlocal buftype=nofile
   setlocal nobuflisted
   setlocal noswapfile
