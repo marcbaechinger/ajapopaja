@@ -1,0 +1,22 @@
+Let's start a single page web application.
+
+Suggest a directory structure and basic setup including the following:
+
+www: the directory containing static files for the website
+src/tools: directory for utils scripts we may create during development
+src/tools/serve.py: A script to serve a website command-line arguments for port, www_root (default: 'www') and other useful things
+
+The project should have a build process to build the web artefacts including linting, testing, minification according to best practices for this type of project.
+It provides means to automatically build into a production ready version.
+For development purpose a build variant builds the same without prod features like minification. This helps for debugging in the web console.
+
+The target directory of the build process is the www directory.
+
+Also create a .gitignore file for this type of project. In addition add the lines also:
+
+.exec.sh
+*.swp
+
+Important: From now on, if you create folders or files that should not be added to a git repository, add them to .gitignore
+
+Do this and apply best practices.
