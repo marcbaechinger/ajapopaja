@@ -68,7 +68,8 @@ Goal: [A concise, high-level statement of what this step aims to achieve.]
 
 [Executable BASH script for this step. The purpose of the script is to create, edit or delete resources to complete the step. 
 - The section is fenced by a markup code block for the 'bash' language
-- The first line of the script is the hash bang followed by a blank line and a line in the format `# step: 42` where 42 is the step sequence.
+- Don't make a blank line after the heading instead start the fenced code block immediately.
+- The first line of the script is the hash bang followed by a blank line and a line.
 - Edits of text files or creation of new text files are implemented with `cat` or similar cli tools. Below two shortened examples for an HTML or Python source file. These are just examples, the reources can be of any type of source code and text files that you find useful for the project.
 
 cat > www/index.html <<HTML
@@ -106,13 +107,13 @@ import http.server
 
 ## Git actions
 
-[Choose from the following options, strictly adhering to the format below. Place the git cammands in a fenced bash code section. Add the step sequence to the commit message.]
+[Choose from the following options, strictly adhering to the format below. Place the git cammands in a fenced bash code section. Add the step sequence to the commit message.
 - `git init && git add . && git commit -m "Initial commit."`: If this is the first step of a task without a current git status report.
 - `git commit -m "Descriptive commit message for this step in imperative form"`: If changes are significant and ready to be committed after this step.
 - `git add <paths> && git commit -m "Descriptive commit message for this step in imperative form"`: If specific files should be added and committed.
 - `git reset --hard HEAD`: If this step is part of a series where the user might want to easily undo the last action. Explain what it measn if you suggest so.
 - No Git action for this step.: If no commit or explicit undo action is immediately relevant.
-- Important: The commit message describes the change of the entire step and not the change compared to the script of the last conversation turn.
+- Important: The commit message describes the change of the entire step and not the change compared to the script of the last conversation turn.]
 
 ## Next Steps/Iteration
 
@@ -225,6 +226,8 @@ let s:statusEdited = "Press ? to prompt."
 let s:statusThinking = "Sent prompt. Thinking..."
 let s:statusResponded = "Response written."
 let s:isAiThinking = 0
+let s:promptHeights = [14, 24, 48]
+let s:currentHeightIndex = -1
 
 let g:AjaPopAjaStatus = "Not yet started"
 let g:AjaPopAjaTotalTokenStats = "[-/-]"
@@ -283,6 +286,7 @@ function! s:renderResponse(code)
     let bufname = bufname(s:responseBufferNr)
     call deletebufline(bufname, 1, lastLine)
     call appendbufline(bufname, 1, split(a:code, "\n", 1)) 
+    call setbufvar(s:responseBufferNr, "&foldlevel", 1)
   endif
 endfunction
 
@@ -318,22 +322,38 @@ function! s:togglePrompt()
     let old_splitright = &splitright
     set splitright
     execute "vsplit" s:responseBufferName
-    setlocal bufhidden=hide
-    setlocal buftype=nofile
-    setlocal nobuflisted
-    setlocal noswapfile
+    call s:setLocalSettingsForResponseBuffer()
     execute "split" s:promptBufferName
     resize 16 
     vert resize 120
-    setlocal bufhidden=hide
-    setlocal nobuflisted
-    setlocal noswapfile
+    call s:setLocalSettingsForPromptBuffer()
     let s:promptBufferNr = bufnr(s:promptBufferName)
     let s:responseBufferNr = bufnr(s:responseBufferName)
     let &splitright = old_splitright
     silent! execute '$'
     normal! ^
   endif
+endfunction
+
+function! 
+
+function! s:setLocalSettingsForResponseBuffer()
+  setlocal bufhidden=hide
+  setlocal buftype=nofile
+  setlocal nobuflisted
+  setlocal noswapfile
+  setlocal nonumber
+  setlocal conceallevel=2
+  setlocal concealcursor=nc
+  nnoremap <buffer> <nowait> <space> za
+endfunction
+
+function! s:setLocalSettingsForPromptBuffer()
+  setlocal bufhidden=hide
+  setlocal nobuflisted
+  setlocal noswapfile
+  setlocal spell
+  setlocal number
 endfunction
 
 function! s:how(query)
@@ -550,6 +570,7 @@ augroup AjaPopAjaMappings
   autocmd FileType ajapopaja nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
   autocmd FileType ajapopaja nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
+  autocmd FileType marddown nnoremap <buffer> <space> za _<CR>
 augroup END
 
 nnoremap <silent> <Leader>ap :AjaPopAjaTogglePrompt<CR> 
