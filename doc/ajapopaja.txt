@@ -120,6 +120,16 @@ noticing the user.
                         Submits the content of the prompt window to the Gemini
                         AI for processing.
 
+                                                 *AjaPopAjaCyclePromptHeight*
+:AjaPopAjaCyclePromptHeight
+                        Cycles through the available prompt heights to adjust
+                        the prompt UI.
+
+                                                  *AjaPopAjaCyclePromptWidth*
+:AjaPopAjaCyclePromptWidth
+                        Cycles through the available prompt widths to adjust
+                        the prompt UI.
+
                                                                   *AjaPopAja*
 :AjaPopAja "<prompt>"
                         Submits a prompt directly as a command argument,
@@ -170,11 +180,14 @@ noticing the user.
 When the cursor is in the prompt window (filetype=ajapopaja), these key
 mappings are available in normal mode for quick access to common actions.
 
-  ?                     Submits the prompt.
-  C                     Clears the entire prompt window.
-  <S-Left>              Selects the previous step.
-  <S-Right>             Selects the next step.
-  <S-F9>                Shows the prompt for the current step.
+  ?                     Submits the prompt. Calls `:AjaPopAjaPrompt`<CR>
+  C                     Clears the prompt buffer
+  <S-Left>              Calls `:AjaPopAjaSelectPrevious`<CR>.
+  <S-Right>             Calls `:AjaPopAjaSelectNext`<CR>.
+  H                     Calls `:AjaPopAjaCyclePromptHeight`<CR>.
+  W                     Calls `:AjaPopAjaCyclePromptWidth`<CR>.
+  <S-F9>                Calls `:AjaPopAjaPopupPrompt`<CR>. Shows the prompt for
+                        the selected step.
 
 =============================================================================
 

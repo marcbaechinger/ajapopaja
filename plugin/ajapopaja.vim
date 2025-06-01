@@ -85,7 +85,7 @@ import http.server
 ]
 - Important: After the execution of the script, the intended modifications is completed and the project is properly working as intended. Ne project is never left in a broken state.
 
-##Explanation
+## Explanation
 
 [A detailed explanation of how the provided code/commands achieve the goal, why this approach is taken, and any relevant context or considerations. This should be clear and informative, justifying the suggested actions.]
 
@@ -226,8 +226,10 @@ let s:statusEdited = "Press ? to prompt."
 let s:statusThinking = "Sent prompt. Thinking..."
 let s:statusResponded = "Response written."
 let s:isAiThinking = 0
-let s:promptHeights = [14, 24, 48]
-let s:currentHeightIndex = -1
+let s:promptHeights = [4, 12, 24, 48]
+let s:promptWidths = [80, 120, 180]
+let s:currentHeightIndex = 1
+let s:currentWidthIndex = 1
 
 let g:AjaPopAjaStatus = "Not yet started"
 let g:AjaPopAjaTotalTokenStats = "[-/-]"
@@ -324,7 +326,7 @@ function! s:togglePrompt()
     execute "vsplit" s:responseBufferName
     call s:setLocalSettingsForResponseBuffer()
     execute "split" s:promptBufferName
-    resize 16 
+    resize 12 
     vert resize 120
     call s:setLocalSettingsForPromptBuffer()
     let s:promptBufferNr = bufnr(s:promptBufferName)
@@ -335,7 +337,31 @@ function! s:togglePrompt()
   endif
 endfunction
 
-function! 
+function! s:cyclePromptWidth()
+    let target_winnr = bufwinnr(s:promptBufferNr)
+    if target_winnr == -1
+        echo "Error: Prompt buffer is not visible in any window."
+        return
+    endif
+    let s:currentWidthIndex = (s:currentWidthIndex + 1) % len(s:promptWidths)
+    let newWidth = s:promptWidths[s:currentWidthIndex]
+    let target_winid = win_getid(target_winnr)
+    call win_execute(target_winid, 'vert resize ' . newWidth)
+    echomsg "prompt window width set to " . newWidth
+endfunction
+
+function! s:cyclePromptHeight()
+    let target_winnr = bufwinnr(s:promptBufferNr)
+    if target_winnr == -1
+        echo "Error: Prompt buffer is not visible in any window."
+        return
+    endif
+    let s:currentHeightIndex = (s:currentHeightIndex + 1) % len(s:promptHeights)
+    let newHeight = s:promptHeights[s:currentHeightIndex]
+    let target_winid = win_getid(target_winnr)
+    call win_execute(target_winid, 'resize ' . newHeight)
+    echomsg "prompt window height set to " . newHeight
+endfunction
 
 function! s:setLocalSettingsForResponseBuffer()
   setlocal bufhidden=hide
@@ -344,8 +370,11 @@ function! s:setLocalSettingsForResponseBuffer()
   setlocal noswapfile
   setlocal nonumber
   setlocal conceallevel=2
-  setlocal concealcursor=nc
   nnoremap <buffer> <nowait> <space> za
+  nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
+  nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
+  nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
+  nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
 endfunction
 
 function! s:setLocalSettingsForPromptBuffer()
@@ -353,7 +382,7 @@ function! s:setLocalSettingsForPromptBuffer()
   setlocal nobuflisted
   setlocal noswapfile
   setlocal spell
-  setlocal number
+  setlocal nonumber
 endfunction
 
 function! s:how(query)
@@ -546,6 +575,8 @@ endfunction
 if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaTogglePrompt :call s:togglePrompt()
   command -nargs=0  AjaPopAjaPrompt :call s:prompt(s:promptBufferName)
+  command -nargs=0  AjaPopAjaCyclePromptHeight :call s:cyclePromptHeight()
+  command -nargs=0  AjaPopAjaCyclePromptWidth :call s:cyclePromptWidth()
   command -nargs=1  AjaPopAja :call s:how(<args>)
   command -nargs=0  AjaPopAjaSelectPrevious :call s:displayPrevious()
   command -nargs=0  AjaPopAjaSelectNext :call s:displayNext()
@@ -570,6 +601,8 @@ augroup AjaPopAjaMappings
   autocmd FileType ajapopaja nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
   autocmd FileType ajapopaja nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
+  autocmd FileType ajapopaja nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
+  autocmd FileType ajapopaja nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
   autocmd FileType marddown nnoremap <buffer> <space> za _<CR>
 augroup END
 
