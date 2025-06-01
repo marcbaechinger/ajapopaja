@@ -306,6 +306,13 @@ function! s:markLinesReadOnly(start_line, end_line, bufname)
   endwhile
 endfunction
 
+function! s:responseBufferExists()
+  if !exists("s:responseBufferNr")
+    return 0
+  endif
+  return bufexists(s:responseBufferNr)
+endfunction
+
 function! s:promptBufferExists()
   if !exists("s:promptBufferNr")
     return 0
@@ -380,6 +387,7 @@ function! s:setLocalSettingsForResponseBuffer()
   nnoremap <buffer> <nowait> <space> za
   nnoremap <silent> <buffer> H :AjaPopAjaCyclePromptHeight<CR>
   nnoremap <silent> <buffer> W :AjaPopAjaCyclePromptWidth<CR>
+  nnoremap <silent> <buffer> <S-Down> :AjaPopAjaGoToPrompt<CR>
   nnoremap <silent> <buffer> <S-Up> :AjaPopAjaGoToPrompt<CR>
   nnoremap <silent> <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
   nnoremap <silent> <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
@@ -508,7 +516,7 @@ function! s:getResponseWinId()
   return -1
 endfunction
 
-function! s:appendLinesToPrompt(lines)
+function! s:appendLinesToPrompt(lines, fence)
   let winId = s:getPromptWinId()
   if winId == -1
     echomsg "prompt window not found"
@@ -518,9 +526,13 @@ function! s:appendLinesToPrompt(lines)
     echomsg "prompt buffer not found: " . s:promptBufferName
     return
   endif
-  call appendbufline(s:promptBufferName, line("$", winId), "```" . &filetype)
+  if a:fence
+    call appendbufline(s:promptBufferName, line("$", winId), "```" . &filetype)
+  endif
   call appendbufline(s:promptBufferName, line("$", winId), a:lines)
-  call appendbufline(s:promptBufferName, line("$", winId), "```")
+  if a:fence
+    call appendbufline(s:promptBufferName, line("$", winId), "```")
+  endif
 endfunction
 
 function! s:appendBufferToPrompt()
@@ -529,7 +541,7 @@ function! s:appendBufferToPrompt()
     echomsg "buffer is empty"
     return
   endif
-  call s:appendLinesToPrompt(lines)
+  call s:appendLinesToPrompt(lines, 1)
 endfunction
 
 function! s:appendSelectionToPrompt()
@@ -538,7 +550,7 @@ function! s:appendSelectionToPrompt()
     echomsg "no visual selection found."
     return
   endif
-  call s:appendLinesToPrompt(selection)
+  call s:appendLinesToPrompt(selection, 1)
 endfunction
 
 function! s:getVisualSelection()
@@ -673,12 +685,20 @@ function! s:executeSelectedStep()
 endfunction
 
 function! s:appendNextStepsToPrompt()
-  if !s:promptBufferExists()
+  if !s:promptBufferExists() || !s:responseBufferExists()
     return
   endif
   let lastHeadingLineNumber = s:findMarkdownHeading(s:responseBufferNr, '$')
   let nextSteps = s:getLinesToEnd(s:responseBufferNr, lastHeadingLineNumber)
-  call s:appendLinesToPrompt(nextSteps)
+  call s:appendLinesToPrompt(nextSteps[2:], 0)
+endfunction
+
+function! s:appendSelectedPromptToPrompt()
+  if !s:promptBufferExists()
+    return
+  endif
+  let selectedPrompt = py3eval("tutor.get_selected_prompt()")
+  call s:appendLinesToPrompt(split(selectedPrompt, "\n", 1), 0)
 endfunction
 
 " define auto commands
@@ -698,6 +718,7 @@ if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaPresentSelectedUserActions :call s:presentSelectedUserActions()
   command -nargs=0  AjaPopAjaAppendBufferToPrompt :call s:appendBufferToPrompt()
   command -nargs=0  AjaPopAjaAppendNextStepsToPrompt :call s:appendNextStepsToPrompt()
+  command -nargs=0  AjaPopAjaAppendSelectedPrompt :call s:appendSelectedPromptToPrompt()
   command -range AjaPopAjaAppendSelectionToPrompt :call s:appendSelectionToPrompt()
 endif
 
@@ -710,16 +731,19 @@ augroup END
 
 augroup AjaPopAjaMappings
   autocmd!
-  autocmd FileType ajapopaja nnoremap <buffer> <S-F9> :AjaPopAjaPopupPrompt<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> ? :AjaPopAjaPrompt<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> <S-F9> :AjaPopAjaPopupPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> ? :AjaPopAjaPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> H :AjaPopAjaCyclePromptHeight<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> W :AjaPopAjaCyclePromptWidth<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <silent> <buffer> N :AjaPopAjaAppendNextStepsToPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> P :AjaPopAjaAppendSelectedPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> <S-Down> :AjaPopAjaGoToResponse<CR>
+  autocmd FileType ajapopaja nnoremap <silent> <buffer> <S-Up> :AjaPopAjaGoToResponse<CR>
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> N :AjaPopAjaAppendNextStepsToPrompt<CR>
-  autocmd FileType ajapopaja nnoremap <buffer> <S-Down> :AjaPopAjaGoToResponse<CR>
-  autocmd FileType marddown nnoremap <buffer> <space> za _<CR>
+
+  autocmd FileType marddown nnoremap <buffer> <space> za<CR>
 augroup END
 
 nnoremap <silent> <Leader>at :AjaPopAjaTogglePrompt<CR> 
