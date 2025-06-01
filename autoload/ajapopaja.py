@@ -23,6 +23,7 @@ class AjaPopAja:
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path_segment = self.timestamp + "_" + self.uuid
         self.workspace = os.path.join(workspace_parent, path_segment)
+        os.makedirs(self.workspace)        
         self.log_directory = os.path.join(log_directory, path_segment)
         self.model_name = "gemini-2.0-flash"
         self.selected_index = 0
@@ -41,8 +42,23 @@ class AjaPopAja:
             config = config
         )
 
+    def _augment_prompt(self, prompt:str):
+        augmented_prompt = f"\n## Project directory tree (`ls -L 5`) ----\n\n"
+        augmented_prompt += f"Project root and working directory: {self.workspace} (can't be changed)\n\n" 
+        augmented_prompt += self.git_reporter.get_project_tree_info()
+        augmented_prompt += "## Git status report ----\n\n"
+        commit_hash = self.git_reporter.get_latest_commit_hash()
+        if commit_hash is not None:
+            augmented_prompt += self.git_reporter.generate_commit_report(commit_hash)
+        else:
+            augmented_prompt += "Not under version control!\n"
+        augmented_prompt += "\n## User prompt ----\n\n" + prompt
+        return augmented_prompt
+
     def prompt(self, prompt:str):
-        response = self.chat.send_message(prompt)
+        augmented_prompt = self._augment_prompt(prompt)
+        response = self.chat.send_message(augmented_prompt)
+        print(augmented_prompt)
         self.prompt_count = self.prompt_count + 1
         # Token book keeping.
         promptTokens = 0

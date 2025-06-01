@@ -1,4 +1,3 @@
-from ajapopajabuffer import extract_and_save_fenced_code
 from collections import defaultdict
 import argparse
 import os
@@ -98,6 +97,22 @@ class GitReporter:
         latest_hash = _get_git_command_output(command, repo_path=self.repo_path)  # Uses internal helper
         return latest_hash
 
+    def get_project_tree_info(self):
+        tree_info = self.execute_external_command(
+            "tree",
+            "-L 5",
+            "-I",
+            ".git", 
+            ".exec.sh", 
+            "node_modules", 
+            "*.pyc", 
+            "__pycache__",
+        )
+        if tree_info is None:
+            return "No tree info.\n\n"
+        else:
+            return tree_info + "\n\n"
+
     @staticmethod
     def default_file_change_formatter(path, change_type, lines_added, lines_deleted):
         """
@@ -152,7 +167,7 @@ class GitReporter:
             )
             return result.stdout.strip()
         except (subprocess.CalledProcessError, FileNotFoundError, Exception):
-            # Silently return None if command is not found, fails, or any other exception occurs
+            print(result.stderr)
             return None
 
     def execute_bash_script(
