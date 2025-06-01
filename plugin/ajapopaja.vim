@@ -440,25 +440,37 @@ function! s:getResponseWinId()
   return -1
 endfunction
 
-function! s:appendSelectionToPrompt()
+function! s:appendLinesToPrompt(lines)
   let winId = s:getPromptWinId()
   if winId == -1
-    echomsg "Prompt window not found"
-    return
-  endif
-  let selection = s:getVisualSelection()
-  if empty(selection)
-    echomsg "No visual selection found."
+    echomsg "prompt window not found"
     return
   endif
   if s:promptBufferNr <= 0
-    echomsg "Prompt buffer not found: " . s:promptBufferName
+    echomsg "prompt buffer not found: " . s:promptBufferName
     return
   endif
-  echomsg "append " . s:promptBufferNr . ", " . s:promptBufferName
   call appendbufline(s:promptBufferName, line("$", winId), "```" . &filetype)
-  call appendbufline(s:promptBufferName, line("$", winId), selection)
+  call appendbufline(s:promptBufferName, line("$", winId), a:lines)
   call appendbufline(s:promptBufferName, line("$", winId), "```")
+endfunction
+
+function! s:appendBufferToPrompt()
+  let lines = getline(1, '$')
+  if empty(lines)
+    echomsg "buffer is empty"
+    return
+  endif
+  call s:appendLinesToPrompt(lines)
+endfunction
+
+function! s:appendSelectionToPrompt()
+  let selection = s:getVisualSelection()
+  if empty(selection)
+    echomsg "no visual selection found."
+    return
+  endif
+  call s:appendLinesToPrompt(selection)
 endfunction
 
 function! s:getVisualSelection()
@@ -520,6 +532,7 @@ if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaPopupPrompt :call s:popupPrompt()
   command -nargs=0  AjaPopAjaExecuteSelectedCode :call s:executeSelectedStep()
   command -nargs=0  AjaPopAjaPresentSelectedUserActions :call s:presentSelectedUserActions()
+  command -nargs=0  AjaPopAjaAppendBufferToPrompt :call s:appendBufferToPrompt()
   command -range AjaPopAjaAppendSelectionToPrompt :call s:appendSelectionToPrompt()
 endif
 

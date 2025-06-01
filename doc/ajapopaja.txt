@@ -156,6 +156,13 @@ noticing the user.
                         text is wrapped in a fenced Markdown code section
                         tagged with the `filtetype`.
 
+                                               *AjaPopAjaAppendBufferToPrompt*
+:AjaPopAjaAppendBufferToPrompt
+                        Appends the current buffer to the prompt buffer. The
+                        text is wrapped in a fenced Markdown code section
+                        tagged with the `filtetype`.
+
+
 =============================================================================
 
 6. Key mappings when in the prompt window    *ajapopaja-prompt-window-mappings*
@@ -175,9 +182,17 @@ mappings are available in normal mode for quick access to common actions.
 
   <Leader>ap           Calls `:AjaPopAjaPrompt`<CR> in normal mode.
 
+Recommended mapping in any mode for your `~/.vimrc`:
+
+  <Leader>ab           Calls `:AjaPopAjaAppendBufferToPrompt`<CR>.
+
+  noremap <silent> <Leader>ab :AjaPopAjaAppendBufferToPrompt<CR>
+
 Recommended mapping in Visual mode for your `~/.vimrc`:
 
   <C-v>                Calls `:AjaPopAjaAppendSelectionToPrompt`<CR>
+
+  vnoremap <silent> <C-v> :AjaPopAjaAppendSelection<CR>
 
 
 vim:tw=78:ts=8:ft=help:norl:

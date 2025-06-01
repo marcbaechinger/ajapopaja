@@ -1,4 +1,5 @@
 AjaPopAja	ajapopaja.txt	/*AjaPopAja*
+AjaPopAjaAppendBufferToPrompt	ajapopaja.txt	/*AjaPopAjaAppendBufferToPrompt*
 AjaPopAjaAppendSelectionToPrompt	ajapopaja.txt	/*AjaPopAjaAppendSelectionToPrompt*
 AjaPopAjaExecuteSelectedCode	ajapopaja.txt	/*AjaPopAjaExecuteSelectedCode*
 AjaPopAjaPopupPrompt	ajapopaja.txt	/*AjaPopAjaPopupPrompt*
