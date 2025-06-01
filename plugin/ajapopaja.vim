@@ -378,10 +378,11 @@ function! s:setLocalSettingsForResponseBuffer()
   setlocal nonumber
   setlocal conceallevel=2
   nnoremap <buffer> <nowait> <space> za
-  nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
-  nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
-  nnoremap <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
-  nnoremap <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
+  nnoremap <silent> <buffer> H :AjaPopAjaCyclePromptHeight<CR>
+  nnoremap <silent> <buffer> W :AjaPopAjaCyclePromptWidth<CR>
+  nnoremap <silent> <buffer> <S-Up> :AjaPopAjaGoToPrompt<CR>
+  nnoremap <silent> <buffer> <S-Left> :AjaPopAjaSelectPrevious<CR>
+  nnoremap <silent> <buffer> <S-Right> :AjaPopAjaSelectNext<CR>
 endfunction
 
 function! s:setLocalSettingsForPromptBuffer()
@@ -647,6 +648,26 @@ function! s:echoColoredMessage(color, message)
   echohl None
 endfunction
 
+function! s:goToWindow(winId, notFoundHelpMessage)
+  if a:winId != -1
+    call win_gotoid(a:winId)
+  else
+    call s:echoWarning(a:notFoundHelpMessage)
+  endif
+endfunction
+
+function! s:goToPrompt()
+  let msg = "prompt window not found. Try :AjaPopAjaTogglePrompt to open it."
+  let winId = s:getPromptWinId()
+  call s:goToWindow(winId, msg)
+endfunction
+
+function! s:goToResponse()
+  let msg = "response window not found. Try :AjaPopAjaTogglePrompt to open it."
+  let winId = s:getResponseWinId()
+  call s:goToWindow(winId, msg)
+endfunction
+
 function! s:executeSelectedStep()
   call py3eval('tutor.execute_selected_code_section()')
 endfunction
@@ -665,6 +686,8 @@ endfunction
 if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaTogglePrompt :call s:togglePrompt()
   command -nargs=0  AjaPopAjaPrompt :call s:prompt(s:promptBufferName)
+  command -nargs=0  AjaPopAjaGoToPrompt :call s:goToPrompt()
+  command -nargs=0  AjaPopAjaGoToResponse :call s:goToResponse()
   command -nargs=0  AjaPopAjaCyclePromptHeight :call s:cyclePromptHeight()
   command -nargs=0  AjaPopAjaCyclePromptWidth :call s:cyclePromptWidth()
   command -nargs=1  AjaPopAja :call s:how(<args>)
@@ -695,8 +718,11 @@ augroup AjaPopAjaMappings
   autocmd FileType ajapopaja nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
   autocmd FileType ajapopaja nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
   autocmd FileType ajapopaja nnoremap <buffer> N :AjaPopAjaAppendNextStepsToPrompt<CR>
+  autocmd FileType ajapopaja nnoremap <buffer> <S-Down> :AjaPopAjaGoToResponse<CR>
   autocmd FileType marddown nnoremap <buffer> <space> za _<CR>
 augroup END
 
-nnoremap <silent> <Leader>ap :AjaPopAjaTogglePrompt<CR> 
+nnoremap <silent> <Leader>at :AjaPopAjaTogglePrompt<CR> 
+nnoremap <silent> <Leader>ap :AjaPopAjaGoToPrompt<CR> 
+nnoremap <silent> <Leader>ar :AjaPopAjaGoToResponse<CR> 
 
