@@ -306,6 +306,13 @@ function! s:markLinesReadOnly(start_line, end_line, bufname)
   endwhile
 endfunction
 
+function! s:promptBufferExists()
+  if !exists("s:promptBufferNr")
+    return 0
+  endif
+  return bufexists(s:promptBufferNr)
+endfunction
+
 function! s:togglePrompt()
   call s:ensureDirectoryExists(expand('~') . '/.ajapopaja')
   if !exists("s:promptBufferNr")
@@ -478,6 +485,17 @@ function! s:getPromptWinId()
   return -1
 endfunction
 
+function! s:getWinId(bufNr)
+  if !a:bufNr
+    return -1
+  endif
+  let winids = win_findbuf(a:bufNr)
+  if !empty(winids)
+    return winids[0]
+  endif
+  return -1
+endfunction
+
 function! s:getResponseWinId()
   if !s:responseBufferNr
     return -1
@@ -533,6 +551,72 @@ endfunction
 
 " utility functions
 
+function! s:resolveStartLine(bufnr, lineNumberArg) abort
+  let startLine = -1
+  if type(a:lineNumberArg) == v:t_number
+    let startLine = a:lineNumberArg
+  elseif type(a:lineNumberArg) == v:t_string
+    if a:lineNumberArg == '.'
+      let winid = bufwinid(a:bufnr)
+      if winid == -1
+        return -1 " Indicate error
+      endif
+      let curpos_list = getcurpos(winid)
+      let startLine = curpos_list[1]
+    elseif a:lineNumberArg == '$'
+      let winId = s:getWinId(a:bufnr)
+      let startLine = line('$', winId)
+    endif
+  endif
+  if startLine < 1
+    return -1 
+  endif
+  return startLine
+endfunction
+
+function! s:findMarkdownHeading(bufName, lineNumberArg) abort
+    let bufnr = type(a:bufName) == v:t_number ? a:bufName : bufnr(a:bufName)
+    let bufNameForError = type(a:bufName) == v:t_string ? a:bufName : bufname(bufnr)
+    let winId = s:getResponseWinId()
+    let lastLineInBuf = line('$', winId)
+    let startLine = s:resolveStartLine(bufnr, a:lineNumberArg)
+    if startLine == -1 || startLine > lastLineInBuf
+      echomsg "Start line not in buffer range" . ": startLine=" . startLine . ", lastLineInBuf=" . lastLineInBuf
+      return -1
+    endif
+    let currentLineNum = startLine
+    while currentLineNum >= 1
+        let lineContentList = getbufline(bufnr, currentLineNum)
+        if empty(lineContentList)
+            let currentLineNum -= 1
+            continue
+        endif
+        let actualLineText = lineContentList[0]
+        if actualLineText =~ '^## '
+            return currentLineNum
+        endif
+        let currentLineNum -= 1
+    endwhile
+    echomsg "No line found"
+    return -1
+endfunction
+
+function! s:getLinesToEnd(bufName, lineNumberArg) abort
+    let bufnr = type(a:bufName) == v:t_number ? a:bufName : bufnr(a:bufName)
+    let bufNameForError = type(a:bufName) == v:t_string ? a:bufName : bufname(bufnr)
+    if !bufloaded(bufnr)
+        echohl WarningMsg | echo "Error: Buffer '" . string(bufNameForError) . "' (nr: " . bufnr . ") could not be loaded." | echohl None
+        return []
+    endif
+    let winId = s:getWinId(bufnr)
+    let lastLineInBuf = line('$', winId)
+    let startLine = s:resolveStartLine(bufnr, a:lineNumberArg)
+    if startLine == -1 || startLine > lastLineInBuf
+        return []
+    endif
+    return getbufline(bufnr, startLine, '$')
+endfunction
+
 function! s:ensureDirectoryExists(directory_path)
   if !isdirectory(a:directory_path)
     silent! call mkdir(a:directory_path, "p")
@@ -567,7 +651,13 @@ function! s:executeSelectedStep()
   call py3eval('tutor.execute_selected_code_section()')
 endfunction
 
-function! s:presentSelectedUserActions()
+function! s:appendNextStepsToPrompt()
+  if !s:promptBufferExists()
+    return
+  endif
+  let lastHeadingLineNumber = s:findMarkdownHeading(s:responseBufferNr, '$')
+  let nextSteps = s:getLinesToEnd(s:responseBufferNr, lastHeadingLineNumber)
+  call s:appendLinesToPrompt(nextSteps)
 endfunction
 
 " define auto commands
@@ -584,6 +674,7 @@ if !exists(":AjaPopAjaTogglePrompt")
   command -nargs=0  AjaPopAjaExecuteSelectedCode :call s:executeSelectedStep()
   command -nargs=0  AjaPopAjaPresentSelectedUserActions :call s:presentSelectedUserActions()
   command -nargs=0  AjaPopAjaAppendBufferToPrompt :call s:appendBufferToPrompt()
+  command -nargs=0  AjaPopAjaAppendNextStepsToPrompt :call s:appendNextStepsToPrompt()
   command -range AjaPopAjaAppendSelectionToPrompt :call s:appendSelectionToPrompt()
 endif
 
@@ -603,6 +694,7 @@ augroup AjaPopAjaMappings
   autocmd FileType ajapopaja nnoremap <buffer> C :%d _<CR>
   autocmd FileType ajapopaja nnoremap <buffer> H :AjaPopAjaCyclePromptHeight<CR>
   autocmd FileType ajapopaja nnoremap <buffer> W :AjaPopAjaCyclePromptWidth<CR>
+  autocmd FileType ajapopaja nnoremap <buffer> N :AjaPopAjaAppendNextStepsToPrompt<CR>
   autocmd FileType marddown nnoremap <buffer> <space> za _<CR>
 augroup END
 
