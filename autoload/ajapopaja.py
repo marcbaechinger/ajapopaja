@@ -230,6 +230,17 @@ class AjaPopAja:
             return self.get_selected()
         return None
 
+    def get_selected_prompt(self):
+        """Gets the prompt content of the currently selected history entry.
+
+        Returns:
+            The prompt string, or None if no entry is selected.
+        """
+        _, event = self.get_selected()
+        if event is not None:
+            return event.prompt
+        return None
+
     def get_selected_response(self):
         """Gets the response content of the currently selected history entry.
 
@@ -240,13 +251,13 @@ class AjaPopAja:
         if event is not None:
             return event.response
 
-    def get_selected_prompt(self):
-        """Gets the prompt content of the currently selected history entry.
+    def get_last_prompt(self):
+        """Gets the prompt content of the last history entry.
 
         Returns:
-            The prompt string, or None if no entry is selected.
+            The prompt string, or None if history is empty.
         """
-        _, event = self.get_selected()
+        event = self.history.get_last_entry()
         if event is not None:
             return event.prompt
         return None
@@ -260,17 +271,6 @@ class AjaPopAja:
         event = self.history.get_last_entry()
         if event is not None:
             return event.response
-        return None
-
-    def get_last_prompt(self):
-        """Gets the prompt content of the last history entry.
-
-        Returns:
-            The prompt string, or None if history is empty.
-        """
-        event = self.history.get_last_entry()
-        if event is not None:
-            return event.prompt
         return None
 
     def execute_selected_code_section(self):
