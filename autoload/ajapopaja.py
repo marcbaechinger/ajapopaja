@@ -10,11 +10,11 @@ import os
 
 __all__ = ["AjaPopAja"]
 
-def create_chat(api_key: str, model: str, contentConfig: types.GenerateContentConfig):
+def create_chat(api_key: str, model: str, content_config: types.GenerateContentConfig):
     client = genai.Client(api_key=api_key)
     return client.chats.create(
         model=model,
-        config=contentConfig
+        config=content_config
     )
 
 class AjaPopAja:
@@ -61,28 +61,28 @@ class AjaPopAja:
         print(augmented_prompt)
         self.prompt_count = self.prompt_count + 1
         # Token book keeping.
-        promptTokens = 0
-        candidatesTokens = 0
+        prompt_tokens = 0
+        candidates_tokens = 0
         if response.usage_metadata is not None:
             metadata = response.usage_metadata
-            promptTokens: int = metadata.prompt_token_count if metadata.prompt_token_count is not None else 0
-            candidatesTokens: int = metadata.candidates_token_count if metadata.candidates_token_count is not None else 0
-        self.prompt_token_count = self.prompt_token_count + promptTokens
-        self.candidates_token_count = self.candidates_token_count + candidatesTokens
+            prompt_tokens: int = metadata.prompt_token_count if metadata.prompt_token_count is not None else 0
+            candidates_tokens: int = metadata.candidates_token_count if metadata.candidates_token_count is not None else 0
+        self.prompt_token_count = self.prompt_token_count + prompt_tokens
+        self.candidates_token_count = self.candidates_token_count + candidates_tokens
 
         # Fallback if Code ouput failed. Should not happen.
         responseText = ""
         for part in response.candidates[0].content.parts:
             if part.text is not None:
                 responseText += part.text
-        self.history.add(prompt, responseText, promptTokens, candidatesTokens)
+        self.history.add(prompt, responseText, prompt_tokens, candidates_tokens)
         self.history.truncate(20)
         self.selected_index = len(self.history.entries) - 1
         self.dump_report(
             prompt, 
             responseText, 
-            promptTokens, 
-            candidatesTokens, 
+            prompt_tokens,
+            candidates_tokens,
             self.prompt_count,
             self.log_directory)
         return self.get_selected()
@@ -154,8 +154,8 @@ class AjaPopAja:
         return None
 
     def select_next(self):
-        numEntries = len(self.history.entries)
-        if self.selected_index < numEntries - 1:
+        num_entries = len(self.history.entries)
+        if self.selected_index < num_entries - 1:
             self.selected_index = self.selected_index + 1
             return self.get_selected()
         return None
@@ -187,8 +187,8 @@ class History:
     def __init__(self) -> None:
         self.entries: list[HistoryEvent] = []
 
-    def add(self, prompt: str, response: str, promptTokenCount: int, candidatesTokenCount: int):
-        self.entries.append(HistoryEvent(prompt, response, promptTokenCount, candidatesTokenCount))
+    def add(self, prompt: str, response: str, prompt_token_count: int, candidates_token_count: int):
+        self.entries.append(HistoryEvent(prompt, response, prompt_token_count, candidates_token_count))
 
     def get_last_entry(self):
         history_len = len(self.entries)
