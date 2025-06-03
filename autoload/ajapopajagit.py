@@ -12,18 +12,26 @@ __all__ = ['GitReporter', 'is_valid_git_repo']
 
 def _get_git_command_output(command_str, repo_path=None):
     """
-    Executes a git command, potentially in a specific repository path, 
-    and returns its stdout. On any error, it silently returns None.
-    (Internal use)
+    Executes a git command and returns its standard output.
+
+    This function is intended for internal use. It constructs and runs a git
+    command, optionally targeting a specific repository path. If any error
+    occurs during the execution of the command (e.g., command not found,
+    non-zero exit status, or other subprocess exceptions), this function
+    will silently return None.
 
     Args:
-        command_str (str): The git command to execute (e.g., "git status", "git log -1").
-                           It's assumed 'git ' prefix will be handled by the method if not present.
-        repo_path (str, optional): Absolute path to the git repository. 
-                                   If None, commands run in the current directory.
+        command_str (str): The git command string to execute (e.g., "status", "log -1").
+                           The 'git ' prefix is prepended automatically if not present.
+        repo_path (str, optional): The absolute path to the git repository.
+                                   If None, the command is run in the current
+                                   working directory's context if it's a repo,
+                                   or may fail if not in a repo.
 
     Returns:
-        str: The stdout from the command, or None if an error occurred.
+        str or None: The standard output (stdout) from the executed git command
+                     as a string, with leading/trailing whitespace stripped.
+                     Returns None if any error occurs during command execution.
     """
     try:
         # Ensure command starts with "git"
@@ -76,14 +84,21 @@ class GitReporter:
         Initializes the GitReporter.
 
         Args:
-            repo_path (str): Path to the Git repository.
-            file_line_formatter (callable, optional): A function to format file change lines.
-                                                      Defaults to GitReporter.default_file_change_formatter.
+            repo_path (str): The path to the Git repository. This path will be
+                             converted to an absolute path.
+            file_line_formatter (callable, optional): A function used to format
+                                                      lines detailing file changes in
+                                                      commit reports. If None,
+                                                      `GitReporter.default_file_change_formatter`
+                                                      is used.
 
         Raises:
-            ValueError: If the provided path is not a valid Git repository.
+            ValueError: If the `repo_path` does not point to a valid Git repository,
+                        as determined by `is_valid_git_repo`.
         """
         self.repo_path = os.path.abspath(repo_path)  
+        if not is_valid_git_repo(self.repo_path):
+            raise ValueError(f"The path '{repo_path}' is not a valid Git repository.")
         self.file_line_formatter = file_line_formatter if file_line_formatter else GitReporter.default_file_change_formatter
 
     def get_latest_commit_hash(self):
@@ -98,6 +113,18 @@ class GitReporter:
         return latest_hash
 
     def get_project_tree_info(self):
+        """
+        Retrieves a directory tree listing for the repository.
+
+        Executes the `tree` command with a depth limit of 5 and ignores
+        common development/temporary directories and files like .git, .exec.sh,
+        node_modules, *.pyc, and __pycache__.
+
+        Returns:
+            str: A string containing the formatted tree listing. If the `tree`
+                 command fails or is not found, it returns "No tree info.\n\n".
+                 The output always ends with two newline characters.
+        """
         tree_info = self.execute_external_command(
             "tree",
             "-L 5",
@@ -116,29 +143,55 @@ class GitReporter:
     @staticmethod
     def default_file_change_formatter(path, change_type, lines_added, lines_deleted):
         """
-        Default formatter for a single file change line.
+        Formats a line describing a file change for inclusion in a commit report.
+
+        This is the default formatter used by GitReporter if no other formatter
+        is provided during initialization.
+
+        Args:
+            path (str): The file path relative to the repository root.
+            change_type (str): The type of change (e.g., "added", "modified", "deleted", "renamed").
+            lines_added (int): The number of lines added to the file.
+            lines_deleted (int): The number of lines deleted from the file.
+
+        Returns:
+            str: A formatted string representing the file change.
+                 Example: "[src/main.py] [modified] +[10] -[2]"
         """
         return f"[{path}] [{change_type}] +[{lines_added}] -[{lines_deleted}]"
 
     def execute_external_command(self, command_name, common_args=None,
                                  pattern_arg_flag="-I", *patterns_to_process):
         """
-        Executes an external command with given arguments and pattern processing.
-        The order of arguments in the constructed command is:
-        command_name, pattern_arguments (flag + pattern), common_arguments.
+        Executes an external command with specified arguments and pattern processing.
+
+        Constructs and runs a command in the repository's root directory.
+        The command is built by first including the `command_name`, then any
+        pattern-related arguments (each pattern prefixed by `pattern_arg_flag`),
+        and finally any `common_args`.
 
         Args:
             command_name (str): The name of the command to execute (e.g., "tree", "ls").
-            common_args (str, optional): A string of common arguments for the command. 
-                                         Example: "-L 5", "-al --sort=time".
-            pattern_arg_flag (str, optional): The flag used before each pattern. 
-                                              Defaults to "-I" (for `tree`). 
-                                              Example: "--exclude=" for `tar` or `du`.
-            *patterns_to_process: Variable number of patterns to process.
-                                  Example: "*.pyc", "__pycache__".
+                                This argument is mandatory.
+            common_args (str, optional): A string containing common arguments for the
+                                         command (e.g., "-L 5", "-al --sort=time").
+                                         These are appended after pattern arguments.
+            pattern_arg_flag (str, optional): The flag used to prefix each pattern
+                                              (e.g., "-I" for `tree`, "--exclude=" for `tar`).
+                                              Defaults to "-I".
+            *patterns_to_process (str): Variable number of pattern strings to be
+                                        processed. Each pattern will be prefixed by
+                                        `pattern_arg_flag`. For example, if `pattern_arg_flag`
+                                        is "-I" and `patterns_to_process` are "*.pyc",
+                                        "__pycache__", this will result in
+                                        `-I "*.pyc" -I "__pycache__"` being added to the command.
 
         Returns:
-            str: The output of the command as a string, or None if the command fails or is not found.
+            str or None: The standard output (stdout) of the executed command as a
+                         string, with leading/trailing whitespace stripped. Returns
+                         None if `command_name` is not provided, or if the command
+                         execution fails for any reason (e.g., command not found,
+                         non-zero exit status).
         """
         if not command_name:
             return None  # Command name is mandatory
@@ -177,16 +230,24 @@ class GitReporter:
         Executes a bash script in the repository's root directory.
 
         Args:
-            script_name (str): The name of the script to execute.
-            command (str): The commands to execute in a single script like a shell script.
+            script_name (str): The name of the bash script file to execute.
+                               It is expected that this script is located in the
+                               repository's root directory.
 
         Returns:
-            subprocess.CompletedProcess: An object containing the return code,
-                                         stdout, and stderr of the executed command.
+            subprocess.CompletedProcess: An object representing the result of the
+                                         script execution. This object contains
+                                         attributes like `returncode`, `stdout`, and
+                                         `stderr`.
 
         Raises:
-            subprocess.CalledProcessError: If check=True and the command returns a non-zero exit code.
-            Exception: For other potential issues during command execution.
+            subprocess.CalledProcessError: If the executed script returns a non-zero
+                                         exit code. The `check=True` argument to
+                                         `subprocess.run` ensures this.
+            FileNotFoundError: If the specified `script_name` (or `bash` itself)
+                               cannot be found.
+            Exception: For other potential issues during command execution, such as
+                       permission errors or other `subprocess.run` failures.
         """
         try:
             result = subprocess.run(
@@ -220,14 +281,31 @@ class GitReporter:
 
     def generate_commit_report(self, commit_hash):
         """
-        Generates a formatted report for a specific git commit hash from the repository,
-        using the formatter specified during initialization.
+        Generates a detailed, formatted report for a specific git commit.
+
+        The report includes commit metadata (hash, author, date), the commit
+        message, and a list of changed files with their respective lines added
+        and deleted. The formatting of file change lines is handled by the
+        `file_line_formatter` set during the GitReporter's initialization.
+
+        This method fetches information using several git commands:
+        - `git show --no-patch --date=default --pretty=format:'...' <hash>` for metadata.
+        - `git show --no-patch --pretty="format:%B" <hash>` for the commit message.
+        - `git show --numstat --pretty="format:" <hash>` for lines added/deleted per file.
+        - `git show --name-status --pretty="format:" <hash>` for change types (added, modified, etc.).
+
+        If any of these git commands fail (e.g., invalid commit hash), the
+        report generation might be incomplete or return an error message.
 
         Args:
-            commit_hash (str): The hash of the commit.
+            commit_hash (str): The full or short hash of the commit for which
+                               to generate the report.
 
         Returns:
-            str: The formatted report.
+            str: A string containing the formatted commit report. If fetching
+                 commit metadata fails, a specific error message is returned.
+                 The report is structured with metadata, commit message (indented),
+                 and then a list of file changes.
         """
         output_lines = []
 
@@ -325,8 +403,16 @@ class GitReporter:
 
 def _main():  # Renamed from main
     """
-    Main function to parse arguments, instantiate GitReporter, 
-    and generate a report for the latest commit. (Internal use for script execution)
+    Command-line interface entry point for the GitReporter script.
+
+    Parses command-line arguments to specify a Git repository and optional
+    actions like displaying the file tree (`--tree`) or disk usage (`--du`).
+    It initializes a `GitReporter` for the target repository and prints a
+    report for the latest commit. If additional action flags are provided,
+    it executes those commands and prints their output.
+
+    This function is intended for direct script execution and handles argument
+    parsing, error reporting to stderr, and exiting with appropriate status codes.
     """
     parser = argparse.ArgumentParser(
         description="Generate a report for the last commit in a Git repository. "

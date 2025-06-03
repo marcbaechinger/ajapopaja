@@ -11,6 +11,16 @@ import os
 __all__ = ["AjaPopAja"]
 
 def create_chat(api_key: str, model: str, content_config: types.GenerateContentConfig):
+    """Creates a new chat session with the specified API key, model, and content configuration.
+
+    Args:
+        api_key: The API key for accessing the generative AI service.
+        model: The name of the model to use for the chat.
+        content_config: The configuration for content generation.
+
+    Returns:
+        A new chat session object.
+    """
     client = genai.Client(api_key=api_key)
     return client.chats.create(
         model=model,
@@ -19,6 +29,14 @@ def create_chat(api_key: str, model: str, content_config: types.GenerateContentC
 
 class AjaPopAja:
     def __init__(self, api_key: str, system_instruction: str, workspace_parent:str, log_directory: str) -> None:
+        """Initializes an AjaPopAja instance.
+
+        Args:
+            api_key: The API key for accessing the generative AI service.
+            system_instruction: The system instruction to configure the chat model.
+            workspace_parent: The parent directory for creating workspaces.
+            log_directory: The directory for storing log files.
+        """
         self.uuid = str(uuid.uuid4())
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path_segment = self.timestamp + "_" + self.uuid
@@ -43,6 +61,14 @@ class AjaPopAja:
         )
 
     def _augment_prompt(self, prompt:str):
+        """Augments the user prompt with project context and git information.
+
+        Args:
+            prompt: The user's original prompt.
+
+        Returns:
+            The augmented prompt string.
+        """
         augmented_prompt = f"\n## Project directory tree (`ls -L 5`) ----\n\n"
         augmented_prompt += f"Project root and working directory: {self.workspace} (can't be changed)\n\n" 
         augmented_prompt += self.git_reporter.get_project_tree_info()
@@ -56,6 +82,14 @@ class AjaPopAja:
         return augmented_prompt
 
     def prompt(self, prompt:str):
+        """Sends a prompt to the chat model and processes the response.
+
+        Args:
+            prompt: The user's prompt.
+
+        Returns:
+            A tuple containing the selected index and the corresponding HistoryEvent.
+        """
         augmented_prompt = self._augment_prompt(prompt)
         response = self.chat.send_message(augmented_prompt)
         print(augmented_prompt)
@@ -96,6 +130,16 @@ class AjaPopAja:
         prompt_sequence: int,
         directory: str
     ):
+        """Dumps a report of the interaction to a markdown file.
+
+        Args:
+            prompt: The prompt sent to the model.
+            response: The response received from the model.
+            input_tokens: The number of tokens in the input.
+            output_tokens: The number of tokens in the output.
+            prompt_sequence: The sequence number of the prompt.
+            directory: The directory to save the report in.
+        """
         now = datetime.now()
         date_time_string = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -116,44 +160,91 @@ class AjaPopAja:
 
 
     def get_total_token_count(self):
+        """Gets the total number of tokens used in the chat session.
+
+        Returns:
+            The total token count.
+        """
         return self.prompt_token_count + self.candidates_token_count
 
     def get_prompt_token_count(self):
+        """Gets the total number of prompt tokens used in the chat session.
+
+        Returns:
+            The prompt token count.
+        """
         return self.prompt_token_count
 
     def get_candidates_token_count(self):
+        """Gets the total number of candidates tokens used in the chat session.
+
+        Returns:
+            The candidates token count.
+        """
         return self.candidates_token_count
 
     def get_selected_response(self):
+        """Gets the response content of the currently selected history entry.
+
+        Returns:
+            The response string, or None if no entry is selected.
+        """
         _, event = self.get_selected()
         if event is not None:
             return event.response
 
     def get_selected_prompt(self):
+        """Gets the prompt content of the currently selected history entry.
+
+        Returns:
+            The prompt string, or None if no entry is selected.
+        """
         _, event = self.get_selected()
         if event is not None:
             return event.prompt
         return None
 
     def get_last_response(self):
+        """Gets the response content of the last history entry.
+
+        Returns:
+            The response string, or None if history is empty.
+        """
         event = self.history.get_last_entry()
         if event is not None:
             return event.response
         return None
 
     def get_last_prompt(self):
+        """Gets the prompt content of the last history entry.
+
+        Returns:
+            The prompt string, or None if history is empty.
+        """
         event = self.history.get_last_entry()
         if event is not None:
             return event.prompt
         return None
 
     def select_previous(self):
+        """Selects the previous entry in the history.
+
+        Returns:
+            A tuple containing the new selected index and the corresponding HistoryEvent,
+            or None if already at the beginning of the history.
+        """
         if self.selected_index > 0:
             self.selected_index = self.selected_index - 1
             return self.get_selected()
         return None
 
     def select_next(self):
+        """Selects the next entry in the history.
+
+        Returns:
+            A tuple containing the new selected index and the corresponding HistoryEvent,
+            or None if already at the end of the history.
+        """
         num_entries = len(self.history.entries)
         if self.selected_index < num_entries - 1:
             self.selected_index = self.selected_index + 1
@@ -161,22 +252,47 @@ class AjaPopAja:
         return None
 
     def get_last(self):
+        """Gets the last entry in the history.
+
+        Returns:
+            A tuple containing the index of the last entry and the HistoryEvent itself,
+            or (-1, None) if the history is empty.
+        """
         if len(self.history.entries) == 0:
             return -1, None
         return len(self.history.entries) - 1, self.history.get_last_entry()
 
     def get_selected(self):
+        """Gets the currently selected entry in the history.
+
+        Returns:
+            A tuple containing the selected index and the HistoryEvent,
+            or (-1, None) if the history is empty.
+        """
         if len(self.history.entries) == 0:
             return -1, None
         return self.selected_index, self.history.entries[self.selected_index]
 
     def execute_selected_code_section(self):
+        """Extracts and executes the code section from the selected history entry's response.
+
+        The code is saved to a temporary file ".exec.sh" in the workspace and then executed.
+        """
         extract_and_save_fenced_code(self.workspace, ".exec.sh")
         self.git_reporter.execute_bash_script(".exec.sh")
 
 
 @dataclass(frozen=True)
 class HistoryEvent:
+    """Represents a single event in the chat history.
+
+    Attributes:
+        prompt: The prompt sent to the model.
+        response: The response received from the model.
+        prompt_token_count: The number of tokens in the prompt.
+        candidates_token_count: The number of tokens in the response.
+        timestamp: The timestamp of when the event was created.
+    """
     prompt: str
     response: str
     prompt_token_count: int
@@ -185,16 +301,37 @@ class HistoryEvent:
 
 class History:
     def __init__(self) -> None:
+        """Initializes a new History instance."""
         self.entries: list[HistoryEvent] = []
 
     def add(self, prompt: str, response: str, prompt_token_count: int, candidates_token_count: int):
+        """Adds a new event to the history.
+
+        Args:
+            prompt: The prompt sent to the model.
+            response: The response received from the model.
+            prompt_token_count: The number of tokens in the prompt.
+            candidates_token_count: The number of tokens in the response.
+        """
         self.entries.append(HistoryEvent(prompt, response, prompt_token_count, candidates_token_count))
 
     def get_last_entry(self):
+        """Gets the last entry in the history.
+
+        Returns:
+            The last HistoryEvent, or None if the history is empty.
+        """
         history_len = len(self.entries)
         return None if history_len == 0 else self.entries[history_len - 1]
 
     def truncate(self, max_length):
+        """Truncates the history to a maximum length.
+
+        If the number of entries exceeds max_length, the oldest entries are removed.
+
+        Args:
+            max_length: The maximum number of entries to keep in the history.
+        """
         if len(self.entries) > max_length:
             start_index = len(self.entries) - max_length
             self.entries = self.entries[start_index:]
