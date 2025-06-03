@@ -172,31 +172,26 @@ class GitReporter:
 
     def execute_bash_script(
         self, 
-        working_directory: str,
         script_name: str):
         """
-        Executes a bash scriptin a specified working directory.
+        Executes a bash script in the repository's root directory.
 
         Args:
+            script_name (str): The name of the script to execute.
             command (str): The commands to execute in a single script like a shell script.
-            working_directory (str): The path to the directory where the command should be executed.
 
         Returns:
             subprocess.CompletedProcess: An object containing the return code,
                                          stdout, and stderr of the executed command.
 
         Raises:
-            FileNotFoundError: If the specified working_directory does not exist.
             subprocess.CalledProcessError: If check=True and the command returns a non-zero exit code.
             Exception: For other potential issues during command execution.
         """
-        if not os.path.isdir(working_directory):
-            raise FileNotFoundError(
-                f"Working directory does not exist: {working_directory}")
         try:
             result = subprocess.run(
                 f"bash {script_name}",
-                cwd=working_directory,
+                cwd=self.repo_path,
                 capture_output=True,
                 text=True,
                 check=True,
