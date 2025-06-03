@@ -172,7 +172,7 @@ class AjaPopAja:
 
     def execute_selected_code_section(self):
         extract_and_save_fenced_code(self.workspace, ".exec.sh")
-        self.git_reporter.execute_bash_script(self.workspace, ".exec.sh")
+        self.git_reporter.execute_bash_script(".exec.sh")
 
 
 @dataclass(frozen=True)
