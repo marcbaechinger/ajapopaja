@@ -183,6 +183,53 @@ class AjaPopAja:
         """
         return self.candidates_token_count
 
+    def get_selected(self):
+        """Gets the currently selected entry in the history.
+
+        Returns:
+            A tuple containing the selected index and the HistoryEvent,
+            or (-1, None) if the history is empty.
+        """
+        if len(self.history.entries) == 0:
+            return -1, None
+        return self.selected_index, self.history.entries[self.selected_index]
+
+    def get_last(self):
+        """Gets the last entry in the history.
+
+        Returns:
+            A tuple containing the index of the last entry and the HistoryEvent itself,
+            or (-1, None) if the history is empty.
+        """
+        if len(self.history.entries) == 0:
+            return -1, None
+        return len(self.history.entries) - 1, self.history.get_last_entry()
+
+    def select_previous(self):
+        """Selects the previous entry in the history.
+
+        Returns:
+            A tuple containing the new selected index and the corresponding HistoryEvent,
+            or None if already at the beginning of the history.
+        """
+        if self.selected_index > 0:
+            self.selected_index = self.selected_index - 1
+            return self.get_selected()
+        return None
+
+    def select_next(self):
+        """Selects the next entry in the history.
+
+        Returns:
+            A tuple containing the new selected index and the corresponding HistoryEvent,
+            or None if already at the end of the history.
+        """
+        num_entries = len(self.history.entries)
+        if self.selected_index < num_entries - 1:
+            self.selected_index = self.selected_index + 1
+            return self.get_selected()
+        return None
+
     def get_selected_response(self):
         """Gets the response content of the currently selected history entry.
 
@@ -225,53 +272,6 @@ class AjaPopAja:
         if event is not None:
             return event.prompt
         return None
-
-    def select_previous(self):
-        """Selects the previous entry in the history.
-
-        Returns:
-            A tuple containing the new selected index and the corresponding HistoryEvent,
-            or None if already at the beginning of the history.
-        """
-        if self.selected_index > 0:
-            self.selected_index = self.selected_index - 1
-            return self.get_selected()
-        return None
-
-    def select_next(self):
-        """Selects the next entry in the history.
-
-        Returns:
-            A tuple containing the new selected index and the corresponding HistoryEvent,
-            or None if already at the end of the history.
-        """
-        num_entries = len(self.history.entries)
-        if self.selected_index < num_entries - 1:
-            self.selected_index = self.selected_index + 1
-            return self.get_selected()
-        return None
-
-    def get_last(self):
-        """Gets the last entry in the history.
-
-        Returns:
-            A tuple containing the index of the last entry and the HistoryEvent itself,
-            or (-1, None) if the history is empty.
-        """
-        if len(self.history.entries) == 0:
-            return -1, None
-        return len(self.history.entries) - 1, self.history.get_last_entry()
-
-    def get_selected(self):
-        """Gets the currently selected entry in the history.
-
-        Returns:
-            A tuple containing the selected index and the HistoryEvent,
-            or (-1, None) if the history is empty.
-        """
-        if len(self.history.entries) == 0:
-            return -1, None
-        return self.selected_index, self.history.entries[self.selected_index]
 
     def execute_selected_code_section(self):
         """Extracts and executes the code section from the selected history entry's response.
