@@ -6,16 +6,34 @@ __all__ = ["extract_and_save_fenced_code"]
 # Main function, now orchestrating the helpers
 def extract_and_save_fenced_code(directory, filename):
     """
-    Finds the opening and closing fences of the Markdown code block
-    the cursor is currently in, extracts the content, and saves it to filename
-    in the directory.
+    Extracts the content of a Markdown code block from the current Vim buffer
+    and saves it to a specified file.
+
+    The function identifies the code block based on the current cursor position.
+    It searches upwards for an opening fence ("```") and downwards for a
+    closing fence ("```"). The content between these fences (exclusive) is
+    then written to the specified file.
 
     Args:
-        directory(str): the direcrtory to store the file in
-        filename (str): The file name
+        directory (str): The directory where the file will be saved.
+                         If it doesn't exist, it will be created.
+        filename (str): The name of the file to save the content to.
 
     Returns:
-        dict: A dictionary containing the status of the operation.
+        dict: A dictionary indicating the outcome of the operation.
+              On success:
+                {'status': 'success',
+                 'opening_line': int,  # 1-indexed line number of opening fence
+                 'closing_line': int,  # 1-indexed line number of closing fence
+                 'directory': str,
+                 'filename': str}
+              On failure:
+                {'status': 'error',
+                 'message': str,  # Description of the error
+                 'opening_line': int (optional), # If opening fence was found
+                 'closing_line': int (optional), # If closing fence was found
+                 'directory': str (optional),
+                 'filename': str (optional)}
     """
     try:
         current_buffer = vim.current.buffer
@@ -72,8 +90,11 @@ def extract_and_save_fenced_code(directory, filename):
 # Helper function to find opening and closing fence lines
 def _find_fenced_block_lines(buffer_obj):
     """
-    Finds the line numbers of the opening and closing fences of the
-    Markdown code block the cursor is currently in, using the provided buffer object.
+    Finds the line numbers of the opening and closing fences of a Markdown code block.
+
+    Searches relative to the current cursor position in the provided Vim buffer object.
+    It looks for an opening fence ("```") by searching upwards from the cursor
+    and a closing fence ("```") by searching downwards from the opening fence.
 
     Args:
         buffer_obj: The Vim buffer object to search within.
@@ -85,10 +106,10 @@ def _find_fenced_block_lines(buffer_obj):
                  'closing_line_num': int,  # 1-indexed line number of closing fence
                  'opening_fence_idx': int, # 0-indexed buffer line index of opening fence
                  'closing_fence_idx': int} # 0-indexed buffer line index of closing fence
-              On failure:
-                {'status': 'error',
-                 'message': str,
-                 'opening_line_num': int (optional)} # if opening fence was found but not closing
+              On failure, if opening fence is not found:
+                {'status': 'error', 'message': 'Opening fence not found'}
+              On failure, if closing fence is not found after an opening fence:
+                {'status': 'error', 'message': 'Closing fence not found', 'opening_line_num': int}
     """
     # current_buffer = vim.current.buffer # Now passed as buffer_obj
     cursor_row, _ = vim.current.window.cursor  # cursor_row is 1-indexed
@@ -142,16 +163,19 @@ def _find_fenced_block_lines(buffer_obj):
 # Helper function to extract text between specified lines from the buffer
 def _extract_text_from_buffer_lines(buffer_obj, opening_idx, closing_idx):
     """
-    Extracts lines from buffer_obj between opening_idx (exclusive)
-    and closing_idx (exclusive) and joins them with newline characters.
+    Extracts lines from a Vim buffer object between specified indices.
+
+    The lines between `opening_idx` (exclusive) and `closing_idx` (exclusive)
+    are extracted and joined with newline characters.
 
     Args:
-        buffer_obj: The Vim buffer object.
-        opening_idx (int): 0-indexed line number of the opening fence.
-        closing_idx (int): 0-indexed line number of the closing fence.
+        buffer_obj: The Vim buffer object from which to extract text.
+        opening_idx (int): The 0-indexed buffer line index of the opening fence.
+        closing_idx (int): The 0-indexed buffer line index of the closing fence.
 
     Returns:
-        str: The extracted content as a single string.
+        str: The extracted content as a single string. If no lines are between
+             the fences (e.g., empty block or invalid range), an empty string is returned.
     """
     # Content is between opening_fence_idx + 1 and closing_fence_idx - 1
     # The slice buffer_obj[opening_idx + 1 : closing_idx] correctly captures these lines.
@@ -165,15 +189,18 @@ def _extract_text_from_buffer_lines(buffer_obj, opening_idx, closing_idx):
 # Helper function to save text to a file
 def _save_text_to_file(text_content, directory, filename):
     """
-    Saves the given text_content to the specified directory and filename.
+    Saves the given text content to a file in the specified directory.
+
+    If the directory does not exist, it will be created.
 
     Args:
-        text_content (str): The text to save.
-        filename (str): The path to the file.
+        text_content (str): The text content to be saved.
+        directory (str): The directory where the file will be saved.
+        filename (str): The name of the file.
 
     Returns:
-        dict: {'status': 'success'} if successful,
-              {'status': 'error', 'message': str} on IOError.
+        dict: {'status': 'success'} if the file was saved successfully.
+              {'status': 'error', 'message': str} if an IOError occurred during saving.
     """
     try:
         if not os.path.exists(directory):
