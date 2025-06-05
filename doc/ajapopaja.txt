@@ -172,6 +172,26 @@ noticing the user.
                         text is wrapped in a fenced Markdown code section
                         tagged with the `filtetype`.
 
+                                        *AjaPopAjaAppendNextStepsToPrompt*
+:AjaPopAjaAppendNextStepsToPrompt
+                        Appends the "Next Steps / Iteration" section from the
+                        current response to the prompt buffer. This is useful
+                        for quickly iterating on suggestions.
+
+                                           *AjaPopAjaAppendSelectedPrompt*
+:AjaPopAjaAppendSelectedPrompt
+                        Appends the prompt of the selected history item to
+                        the prompt buffer. The text is wrapped in a fenced
+                        Markdown code section.
+
+                                                      *AjaPopAjaGoToPrompt*
+:AjaPopAjaGoToPrompt
+                        Moves the cursor to the prompt window.
+
+                                                    *AjaPopAjaGoToResponse*
+:AjaPopAjaGoToResponse
+                        Moves the cursor to the response window.
+
 
 =============================================================================
 
@@ -193,7 +213,8 @@ mappings are available in normal mode for quick access to common actions.
 
 7. Global key mappings                              *ajapopaja-global-mappings*
 
-  <Leader>ap           Calls `:AjaPopAjaPrompt`<CR> in normal mode.
+  <Leader>ap           Calls `:AjaPopAjaGoToPrompt`<CR> in normal mode.
+  <Leader>ar           Calls `:AjaPopAjaGoToResponse`<CR> in normal mode.
 
 Recommended mapping in any mode for your `~/.vimrc`:
 
