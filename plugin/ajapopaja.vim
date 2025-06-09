@@ -14,7 +14,7 @@ def AjaPopAjaSafeImport(module_names):
     try:
         __import__(module_name)
     except ImportError:
-        print(f"Warning: can't import {module_name}")
+        print(f"ajapopaja: Warning: can't import {module_name}")
         return False
   return True
 
@@ -26,7 +26,7 @@ def AjaPopAjaAppendToSysPath(paths: list[str]):
 AjaPopAjaAppendToSysPath(
   [
     '~/.vim/bundle/ajapopaja/autoload/', 
-    '~/monolit/code/ajapopaja/.venv/lib/python3.13/site-packages',  
+    '~/.vim/bundle/ajapopaja/.venv/lib/python3.13/site-packages',  
   ]
 )
 
@@ -137,9 +137,9 @@ Important Notes for Generation:
 - Crucially, always provide clear and actionable Acceptance Criteria for each step."""
 
 if api_key is None:
-  print("please provide an API key as env variable GOOGLE_API_KEY to use the Gemini API")
+  print("ajapopaja: please provide an API key as env variable GOOGLE_API_KEY to use the Gemini API")
 elif not ajaPopAjaHasTutor:
-  print("some required imports not available out of ", ajaPopAjaRequiredImports)
+  print("ajapopaja: some required imports not available out of ", ajaPopAjaRequiredImports)
 else:
   workspace_parent = os.path.join(ajaPopAja_user_home, "workspaces")
   logfile_dir = os.path.join(ajaPopAja_user_home, "trace")
@@ -213,6 +213,9 @@ def AjaPopAjaGetSelectedTokenStats():
   else:
     return "-/-"
 
+def AjaPopAjaExecuteBashScript():
+  script = vim.eval("g:ajapopaja_bash_script")
+  tutor.execute_bash_script(script)
 
 EOF
 
@@ -292,6 +295,58 @@ function! s:renderResponse(code)
     call setbufvar(s:responseBufferNr, "&modifiable", 0)
     call setbufvar(s:responseBufferNr, "&foldlevel", 1)
   endif
+endfunction
+
+function! s:getFencedCodeBlockUnderCursor() abort
+    let current_line = line('.')
+    let start_fence_line = 0
+    let end_fence_line = 0
+    let language = ''
+    let code_lines = []
+
+    let search_line = current_line
+    while search_line >= 1
+        let line_content = getline(search_line)
+        if line_content =~ '^\s*```\+\(lang-\|\h\w*\)\?\s*$' " Matches ``` or ```language
+            let start_fence_line = search_line
+            " Extract language: look for word characters after ```
+            let match = matchlist(line_content, '^\s*```\+\(lang-\|\)\?\(\h\w*\)\s*$')
+            if !empty(match) && len(match) >= 3 && !empty(match[2])
+                let language = match[2]
+            endif
+            break
+        endif
+        let search_line -= 1
+    endwhile
+
+    if start_fence_line == 0
+        return {}
+    endif
+
+    let search_line = start_fence_line + 1
+    while search_line <= line('$')
+        let line_content = getline(search_line)
+        if line_content =~ '^\s*```\s*$' " Matches ``` with optional whitespace
+            let end_fence_line = search_line
+            break
+        endif
+        let search_line += 1
+    endwhile
+
+    if end_fence_line == 0 || current_line < start_fence_line || current_line > end_fence_line
+        return {}
+    endif
+
+    if start_fence_line > 0 && end_fence_line > start_fence_line + 1
+        let code_lines = getline(start_fence_line + 1, end_fence_line - 1)
+    endif
+
+    return {
+        \ 'code': code_lines,
+        \ 'language': language,
+        \ 'start_line': start_fence_line,
+        \ 'end_line': end_fence_line
+        \ }
 endfunction
 
 function! s:markLinesReadOnly(start_line, end_line, bufname)
@@ -684,7 +739,11 @@ function! s:goToResponse()
 endfunction
 
 function! s:executeSelectedStep()
-  call py3eval('tutor.execute_selected_code_section()')
+  let result = s:getFencedCodeBlockUnderCursor()
+  if !empty(result)
+    let g:ajapopaja_bash_script = join(result.code, "\n")
+    call py3eval('AjaPopAjaExecuteBashScript()')
+  endif
 endfunction
 
 function! s:appendNextStepsToPrompt()

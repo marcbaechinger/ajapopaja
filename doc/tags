@@ -1,9 +1,13 @@
 AjaPopAja	ajapopaja.txt	/*AjaPopAja*
 AjaPopAjaAppendBufferToPrompt	ajapopaja.txt	/*AjaPopAjaAppendBufferToPrompt*
+AjaPopAjaAppendNextStepsToPrompt	ajapopaja.txt	/*AjaPopAjaAppendNextStepsToPrompt*
+AjaPopAjaAppendSelectedPrompt	ajapopaja.txt	/*AjaPopAjaAppendSelectedPrompt*
 AjaPopAjaAppendSelectionToPrompt	ajapopaja.txt	/*AjaPopAjaAppendSelectionToPrompt*
 AjaPopAjaCyclePromptHeight	ajapopaja.txt	/*AjaPopAjaCyclePromptHeight*
 AjaPopAjaCyclePromptWidth	ajapopaja.txt	/*AjaPopAjaCyclePromptWidth*
 AjaPopAjaExecuteSelectedCode	ajapopaja.txt	/*AjaPopAjaExecuteSelectedCode*
+AjaPopAjaGoToPrompt	ajapopaja.txt	/*AjaPopAjaGoToPrompt*
+AjaPopAjaGoToResponse	ajapopaja.txt	/*AjaPopAjaGoToResponse*
 AjaPopAjaPopupPrompt	ajapopaja.txt	/*AjaPopAjaPopupPrompt*
 AjaPopAjaPresentSelectedUserActions	ajapopaja.txt	/*AjaPopAjaPresentSelectedUserActions*
 AjaPopAjaPrompt	ajapopaja.txt	/*AjaPopAjaPrompt*

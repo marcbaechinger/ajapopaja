@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from google import genai
 from google.genai import types
-from ajapopajabuffer import extract_and_save_fenced_code
 import uuid
 import os
 
@@ -273,12 +272,12 @@ class AjaPopAja:
             return event.response
         return None
 
-    def execute_selected_code_section(self):
+    def execute_bash_script(self, script):
         """Extracts and executes the code section from the selected history entry's response.
 
         The code is saved to a temporary file ".exec.sh" in the workspace and then executed.
         """
-        extract_and_save_fenced_code(self.workspace, ".exec.sh")
+        self.git_reporter.store_bash_script(script, ".exec.sh")
         self.git_reporter.execute_bash_script(".exec.sh")
 
 
@@ -344,10 +343,10 @@ if __name__ == "__main__":
         exit()
 
     system_instruction = (
-        "You are an expert vim tutor."
-        "You give clear an concise advise on how to use vim."
-        "Your output are vim commands or vimscript function that help the user to edit text with vim."
-        "Start with the sequence of commands or the functions and then explain step by step how the user can achieve the declared goal."
+        "You are an expert vim tutor for JavaScript development."
+        "You give clear an concise advise on how create and manage JAvaScript code from within Vim."
+        "Your output is JavaScript source code and explanation that server the user's goal expressed in the prompt."
+        "Start with the source code and then explain step by step how the user can achieve the declared goal."
         "Format you output in markdown format."
     )
 
@@ -361,7 +360,7 @@ if __name__ == "__main__":
         print(f"total prompts: {agent.prompt_token_count}, total candidates: {agent.candidates_token_count}" )
 
 
-    agent = AjaPopAja(api_key, system_instruction, '/tmp')
+    agent = AjaPopAja(api_key, system_instruction, '/tmp', '/tmp')
     prompt = ""
     while prompt is not None:
         prompt = input("# ")

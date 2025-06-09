@@ -97,8 +97,6 @@ class GitReporter:
                         as determined by `is_valid_git_repo`.
         """
         self.repo_path = os.path.abspath(repo_path)  
-        if not is_valid_git_repo(self.repo_path):
-            raise ValueError(f"The path '{repo_path}' is not a valid Git repository.")
         self.file_line_formatter = file_line_formatter if file_line_formatter else GitReporter.default_file_change_formatter
 
     def get_latest_commit_hash(self):
@@ -222,6 +220,26 @@ class GitReporter:
         except (subprocess.CalledProcessError, FileNotFoundError, Exception):
             print(result.stderr)
             return None
+
+    def store_bash_script(self, text_content, filename):
+        """
+        Saves the given text content to a file in the repository root
+
+        Args:
+            text_content (str): The text content to be saved.
+            filename (str): The name of the file.
+
+        Returns:
+            dict: {'status': 'success'} if the file was saved successfully.
+                  {'status': 'error', 'message': str} if an IOError occurred during saving.
+        """
+        try:
+            with open(os.path.join(self.repo_path, filename), 'w') as f:
+                f.write(text_content)
+            return {'status': 'success'}
+        except IOError as e:
+            return {'status': 'error', 'message': f'Failed to write to file: {str(e)}'}
+
 
     def execute_bash_script(
         self, 
