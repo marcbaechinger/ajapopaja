@@ -1,1 +1,1 @@
-See doc/ajapopaja.txt
+Deprecated: See https://github.com/marcbaechinger/ajapopaja-nvim instead
